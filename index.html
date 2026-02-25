@@ -1,111 +1,23 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LinkUp - Media Edition</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #e5ddd5; margin: 0; display: flex; justify-content: center; height: 100vh; }
-        #login-box { background: white; padding: 30px; border-radius: 15px; text-align: center; width: 300px; margin-top: 100px; height: fit-content; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        #chat-area { display: none; width: 100%; max-width: 500px; height: 95vh; background: #fff; flex-direction: column; margin-top: 10px; border-radius: 10px; }
-        #messages { flex: 1; overflow-y: auto; padding: 15px; background: #efe7dd; display: flex; flex-direction: column; }
-        .msg { margin-bottom: 10px; padding: 10px; border-radius: 8px; max-width: 80%; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; }
-        .my-msg { align-self: flex-end; background: #dcf8c6; }
-        .chat-img { max-width: 100%; border-radius: 5px; margin-top: 5px; cursor: pointer; }
-        .input-area { padding: 10px; display: flex; background: #f0f0f0; align-items: center; border-radius: 0 0 10px 10px; }
-        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
-        button { padding: 10px 15px; background: #075e54; color: white; border: none; border-radius: 50%; cursor: pointer; margin-left: 5px; }
-        .file-label { font-size: 20px; cursor: pointer; margin-right: 10px; color: #075e54; }
-    </style>
-</head>
-<body>
+function loadMessages() {
+    db.ref("messages").on("child_added", (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return; // अगर डेटा खाली है तो कुछ न करें
 
-    <div id="login-box">
-        <h2 style="color: #075e54;">LinkUp Login</h2>
-        <input type="text" id="name-input" placeholder="अपना नाम लिखें..." style="width: 80%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
-        <br><br>
-        <button onclick="startChat()" style="border-radius: 5px; width: 100%;">प्रवेश करें</button>
-    </div>
-
-    <div id="chat-area">
-        <div style="background: #075e54; color: white; padding: 15px; font-weight: bold; border-radius: 10px 10px 0 0;">LinkUp - Media Edition</div>
-        <div id="messages"></div>
-        <div class="input-area">
-            <label class="file-label" for="file-input">📎</label>
-            <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="sendImage(this)">
-            <input type="text" id="msg-input" placeholder="मैसेज लिखें...">
-            <button onclick="sendMessage()">➤</button>
-        </div>
-    </div>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBWAAhcEas6YjH8TALc7yfCAsytT5nknw8",
-            authDomain: "linkup-ae2d9.firebaseapp.com",
-            databaseURL: "https://linkup-ae2d9-default-rtdb.firebaseio.com",
-            projectId: "linkup-ae2d9",
-            storageBucket: "linkup-ae2d9.appspot.com",
-            messagingSenderId: "175543325913",
-            appId: "1:175543325913:web:cff0dd57a7e1ccda0e9ac8"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        let currentUser = "";
-
-        function startChat() {
-            const name = document.getElementById('name-input').value;
-            if (name.trim() !== "") {
-                currentUser = name;
-                document.getElementById('login-box').style.display = 'none';
-                document.getElementById('chat-area').style.display = 'flex';
-                loadMessages();
-            }
+        const isMe = data.user === currentUser;
+        const msgDiv = document.getElementById('messages');
+        let content = `<b>${data.user || "Unknown"}</b><br>`;
+        
+        // चेक करें कि मैसेज टेक्स्ट है या फोटो
+        if(data.type === "image" && data.image) {
+            content += `<img src="${data.image}" class="chat-img" onclick="window.open(this.src)">`;
+        } else if (data.text) {
+            content += data.text;
+        } else {
+            return; // अगर कुछ भी नहीं है तो मैसेज न दिखाएँ
         }
 
-        function sendMessage() {
-            const text = document.getElementById('msg-input').value;
-            if (text.trim() !== "") {
-                db.ref("messages").push().set({ user: currentUser, text: text, type: "text" });
-                document.getElementById('msg-input').value = "";
-            }
-        }
-
-        function sendImage(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    db.ref("messages").push().set({
-                        user: currentUser,
-                        image: e.target.result,
-                        type: "image"
-                    });
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function loadMessages() {
-            db.ref("messages").on("child_added", (snapshot) => {
-                const data = snapshot.val();
-                const isMe = data.user === currentUser;
-                const msgDiv = document.getElementById('messages');
-                let content = `<b>${data.user}</b><br>`;
-                
-                if(data.type === "image") {
-                    content += `<img src="${data.image}" class="chat-img" onclick="window.open(this.src)">`;
-                } else {
-                    content += data.text;
-                }
-
-                const html = `<div class="msg ${isMe ? 'my-msg' : ''}">${content}</div>`;
-                msgDiv.innerHTML += html;
-                msgDiv.scrollTop = msgDiv.scrollHeight;
-            });
-        }
-    </script>
-</body>
-</html>
+        const html = `<div class="msg ${isMe ? 'my-msg' : ''}">${content}</div>`;
+        msgDiv.innerHTML += html;
+        msgDiv.scrollTop = msgDiv.scrollHeight;
+    });
+}
