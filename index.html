@@ -91,13 +91,14 @@
         function loadMessages() {
             db.ref("messages").on("child_added", (snapshot) => {
                 const data = snapshot.val();
+                if (!data) return;
                 const isMe = data.user === currentUser;
                 const msgDiv = document.getElementById('messages');
-                let content = `<b>${data.user}</b><br>`;
+                let content = `<b>${data.user || "User"}</b><br>`;
                 
-                if(data.type === "image") {
-                    content += `<img src="${data.image}" class="chat-img" onclick="window.open(this.src)">`;
-                } else {
+                if(data.type === "image" && data.image) {
+                    content += `<img src="${data.image}" class="chat-img" onclick="zoomImage('${data.image}')">`;
+                } else if (data.text) {
                     content += data.text;
                 }
 
@@ -105,6 +106,17 @@
                 msgDiv.innerHTML += html;
                 msgDiv.scrollTop = msgDiv.scrollHeight;
             });
+        }
+
+        function zoomImage(src) {
+            const overlay = document.createElement("div");
+            overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; justify-content:center; align-items:center; z-index:1000; cursor:zoom-out;";
+            overlay.onclick = () => document.body.removeChild(overlay);
+            const img = document.createElement("img");
+            img.src = src;
+            img.style = "max-width:90%; max-height:90%; border-radius:10px;";
+            overlay.appendChild(img);
+            document.body.appendChild(overlay);
         }
     </script>
 </body>
