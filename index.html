@@ -1,23 +1,41 @@
+// लोड मैसेजेस फंक्शन में यह हिस्सा बदलें:
 function loadMessages() {
     db.ref("messages").on("child_added", (snapshot) => {
         const data = snapshot.val();
-        if (!data) return; // अगर डेटा खाली है तो कुछ न करें
+        if (!data) return;
 
         const isMe = data.user === currentUser;
         const msgDiv = document.getElementById('messages');
-        let content = `<b>${data.user || "Unknown"}</b><br>`;
+        let content = `<b>${data.user || "User"}</b><br>`;
         
-        // चेक करें कि मैसेज टेक्स्ट है या फोटो
         if(data.type === "image" && data.image) {
-            content += `<img src="${data.image}" class="chat-img" onclick="window.open(this.src)">`;
+            // इमेज पर क्लिक करने पर zoomImage फंक्शन चलेगा
+            content += `<img src="${data.image}" class="chat-img" onclick="zoomImage('${data.image}')">`;
         } else if (data.text) {
             content += data.text;
-        } else {
-            return; // अगर कुछ भी नहीं है तो मैसेज न दिखाएँ
         }
 
         const html = `<div class="msg ${isMe ? 'my-msg' : ''}">${content}</div>`;
         msgDiv.innerHTML += html;
         msgDiv.scrollTop = msgDiv.scrollHeight;
     });
+}
+
+// फोटो को बड़ा करके दिखाने वाला नया फंक्शन
+function zoomImage(src) {
+    const overlay = document.createElement("div");
+    overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; justify-content:center; align-items:center; z-index:1000; cursor:zoom-out;";
+    overlay.onclick = () => document.body.removeChild(overlay);
+    
+    const img = document.createElement("img");
+    img.src = src;
+    img.style = "max-width:90%; max-height:90%; border-radius:10px; box-shadow:0 0 20px white;";
+    
+    const closeBtn = document.createElement("span");
+    closeBtn.innerHTML = "×";
+    closeBtn.style = "position:absolute; top:20px; right:30px; color:white; font-size:40px; cursor:pointer;";
+    
+    overlay.appendChild(img);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
 }
